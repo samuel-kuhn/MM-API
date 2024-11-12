@@ -49,7 +49,38 @@ class MCServer(Container):
     
     @property
     def env(self) -> list:
+        "environment variables of container"
         return self.attrs['Config']['Env']
+    
+    @property
+    def env_dict(self) -> dict:
+        "environment variables of container"
+        return dict(item.split('=', 1) for item in self.env)
+    
+    @property
+    def motd(self) -> str:
+        "messag of the day"
+        return self.env_dict["MOTD"]
+    
+    @property
+    def version(self) -> str:
+        "mincraft version"
+        return self.env_dict["VERSION"]
+    
+    @property
+    def mode(self) -> str:
+        "game mode"
+        return self.env_dict["MODE"]
+    
+    @property
+    def memory(self) -> str:
+        "memory allocated to server"
+        return self.env_dict["MEMORY"]
+    
+    @property
+    def type(self) -> str:
+        "type of minecraft server. for example ``vanilla``"
+        return self.env_dict["TYPE"]
     
     # methods
     def start(self):
