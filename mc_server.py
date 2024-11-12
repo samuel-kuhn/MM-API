@@ -47,6 +47,10 @@ class MCServer(Container):
     def port(self) -> str:
         return self.attrs['HostConfig']['PortBindings']['25565/tcp'][0]['HostPort']
     
+    @property
+    def env(self) -> list:
+        return self.attrs['Config']['Env']
+    
     # methods
     def start(self):
         super().start()
