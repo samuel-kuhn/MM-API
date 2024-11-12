@@ -2,3 +2,4 @@
 - extend the original docker container class
 - overwrite methods if needed
 - base all container methods on original container class if possible
+- combine container_information and container_manager into one file
