@@ -3,25 +3,22 @@ import docker, os, time
 
 containers_path = os.getcwd() + "/containers/"
 
-
 client = docker.from_env()
 class MCServer(Container):
 
-    def __init__(self, username:str, server_name:str):
+    def __init__(self, username: str, server_name: str):
 
         self.username = username
-        "user that owns the server"
+        "User that owns the server"
 
         self.server_name = server_name
-        "name of the minecraft server in the dashboard"
+        "Name of the Minecraft server in the dashboard"
 
         self.full_name = self.username + '.' + self.server_name
-        "name of the docker container"
+        "Name of the docker container"
 
         container_attrs = client.containers.get(self.full_name).attrs
         super().__init__(attrs=container_attrs, client=client)
-
-
 
     def __str__(self):
         return self.full_name
@@ -30,66 +27,67 @@ class MCServer(Container):
 
     @property
     def image(self) -> str:
-        "the image name of the container"
+        "The image name of the container"
         return super().image.tags[0]
 
     @property
     def path(self):
-        "path to the folder, where the servers data is stored"
+        "Path to the folder, where the server's data is stored"
         return containers_path + self.username + '/' + self.server_name
     
     @property
     def status(self) -> str:
-        "current state of the server"
+        "Current state of the server"
         return client.containers.get(self.full_name).status
     
     @property
     def port(self) -> str:
+        "Port binding for the container"
         return self.attrs['HostConfig']['PortBindings']['25565/tcp'][0]['HostPort']
     
     @property
     def env(self) -> list:
-        "environment variables of container"
+        "Environment variables of the container"
         return self.attrs['Config']['Env']
     
     @property
     def env_dict(self) -> dict:
-        "environment variables of container"
+        "Environment variables of the container"
         return dict(item.split('=', 1) for item in self.env)
     
     @property
     def motd(self) -> str:
-        "messag of the day"
+        "Message of the day"
         return self.env_dict["MOTD"]
     
     @property
     def version(self) -> str:
-        "mincraft version"
+        "Minecraft version"
         return self.env_dict["VERSION"]
     
     @property
     def mode(self) -> str:
-        "game mode"
+        "Game mode"
         return self.env_dict["MODE"]
     
     @property
     def memory(self) -> str:
-        "memory allocated to server"
+        "Memory allocated to server"
         return self.env_dict["MEMORY"]
     
     @property
     def type(self) -> str:
-        "type of minecraft server. for example ``vanilla``"
+        "Type of Minecraft server. For example, ``vanilla``"
         return self.env_dict["TYPE"]
     
     # methods
     def start(self):
         super().start()
-        print("\nstarting server: " + self.full_name)
+        print("\nStarting server: " + self.full_name)
 
     def stop(self):
         super().stop()
-        print("\nstopping server: " + self.full_name)
+        print("\nStopping server: " + self.full_name)
     
     def print(self):
         print('\n' + 15 * '#' + "  " + self.full_name + "  " + 15 * '#')
