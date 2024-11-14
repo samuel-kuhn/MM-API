@@ -116,5 +116,23 @@ class MCServer(Container):
         print("Image: \t" + self.image)
         print("Port: \t" + self.port)
 
+def get_containers(username:str) -> list[MCServer]:
+    containers = []
+    for container in client.containers.list(filters={'name': f'{username}.'}, all=True):
+        mc_server = MCServer(*container.name.split('.'))
+        containers.append(mc_server)
+    return containers
 
+def get_servers(username:str) -> list[dict]:
+    """
+    Returns a list of all servers of a given user.
+
+    Returns:
+        A `list` containing the `MCServer.info` object of all servers.
+
+    """
+    servers = []
+    for container in get_containers(username):
+        servers.append(container.info)
+    return servers
 
