@@ -1,5 +1,5 @@
 from docker.models.containers import Container
-import docker, os, time
+import docker, os
 
 containers_path = os.getcwd() + "/containers/"
 
@@ -79,6 +79,24 @@ class MCServer(Container):
     def type(self) -> str:
         "Type of Minecraft server. For example, ``vanilla``"
         return self.env_dict["TYPE"]
+    
+    @property
+    def info(self) -> dict:
+        """
+        The `dict` contains:
+        - name: Server name,
+        - status: Status of the container. For example, running or exited,
+        - memory: Ram allocated to server,
+        - port: Public port of the server,
+        - version: Minecraft Version
+        """
+        return {
+            "name": self.server_name,
+            "status": self.status,
+            "memory": self.memory,
+            "port": self.port,
+            "version": self.version
+        }
     
     # methods
     def start(self):
