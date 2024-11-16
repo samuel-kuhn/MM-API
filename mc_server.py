@@ -1,5 +1,5 @@
 from docker.models.containers import Container
-import docker, os
+import docker, os, re
 
 containers_path = os.getcwd() + "/containers/"
 
