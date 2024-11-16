@@ -49,8 +49,23 @@ def edit():
 @app.route('/start', methods=['POST'])
 def start():
     request_data = request.get_json()
-    message = manager.start(**request_data)
-    return ("ok", 200) if message is None else (message, 500)
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+    
+    try:
+        server = mc_server.MCServer(username=username, server_name=server_name)
+    except docker.errors.NotFound:
+        return res.ServerNotFound
+    except Exception as exception:
+        return res.UnexpectedError(exception)
+
+    server.start()
+    return res.Success
 
 @app.route('/stop', methods=['POST'])
 def stop():
