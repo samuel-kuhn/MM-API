@@ -14,8 +14,16 @@ def ping():
 
 @app.route('/containers', methods=['GET'])
 def containers():
-    username = request.args.get('username')
-    return ("no username", 500) if username == "" else (CI.get_servers(username), 200)
+    username = request.args.get('username', False, str)
+    if not username:
+        return res.UserMissing  
+
+    servers = mc_server.get_servers(username)
+    response = {
+        "servers": servers,
+        "total": len(servers)
+    }
+    return jsonify(response), 200
 
 @app.route('/get-config', methods=['GET'])
 def get_config():
