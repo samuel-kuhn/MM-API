@@ -6,6 +6,16 @@ containers_path = os.getcwd() + "/containers/"
 client = docker.from_env()
 class MCServer(Container):
 
+    def __new__(cls, username: str, server_name: str):
+        full_name = username + '.' + server_name
+
+        image = client.containers.get(full_name).image.tags[0]
+
+        if image.split(':')[0] != 'itzg/minecraft-server':
+            return None 
+        
+        return super().__new__(cls)
+
     def __init__(self, username: str, server_name: str):
 
         self.username = username
