@@ -130,7 +130,9 @@ def get_containers(username:str) -> list[MCServer]:
     for container in client.containers.list(all=True):
         if bool(re.match(fr'^{username}\..*', container.name)):
             mc_server = MCServer(*container.name.split('.'))
-            containers.append(mc_server)
+
+            if mc_server != None:
+                containers.append(mc_server)
     return containers
 
 def get_servers(username:str) -> list[dict]:
