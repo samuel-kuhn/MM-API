@@ -1,6 +1,7 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import docker
-import json
+import mc_server
+import responses as res
 import container_manager as manager
 import container_information as CI
 
@@ -14,8 +15,16 @@ def ping():
 
 @app.route('/containers', methods=['GET'])
 def containers():
-    username = request.args.get('username')
-    return ("no username", 500) if username == "" else (CI.get_servers(username), 200)
+    username = request.args.get('username', False, str)
+    if not username:
+        return res.UserMissing  
+
+    servers = mc_server.get_servers(username)
+    response = {
+        "servers": servers,
+        "total": len(servers)
+    }
+    return jsonify(response), 200
 
 @app.route('/get-config', methods=['GET'])
 def get_config():
@@ -49,8 +58,23 @@ def edit():
 @app.route('/start', methods=['POST'])
 def start():
     request_data = request.get_json()
-    message = manager.start(**request_data)
-    return ("ok", 200) if message is None else (message, 500)
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+    
+    try:
+        server = mc_server.MCServer(username=username, server_name=server_name)
+    except docker.errors.NotFound:
+        return res.ServerNotFound
+    except Exception as exception:
+        return res.UnexpectedError(exception)
+
+    server.start()
+    return res.Success
 
 @app.route('/stop', methods=['POST'])
 def stop():

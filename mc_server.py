@@ -1,10 +1,19 @@
 from docker.models.containers import Container
 import docker, os, re
 
-containers_path = os.getcwd() + "/containers/"
-
 client = docker.from_env()
+
 class MCServer(Container):
+
+    def __new__(cls, username: str, server_name: str):
+        full_name = username + '.' + server_name
+
+        image = client.containers.get(full_name).image.tags[0]
+
+        if image.split(':')[0] != 'itzg/minecraft-server':
+            return None 
+        
+        return super().__new__(cls)
 
     def __init__(self, username: str, server_name: str):
 
@@ -33,12 +42,12 @@ class MCServer(Container):
     @property
     def path(self):
         "Path to the folder, where the server's data is stored"
-        return containers_path + self.username + '/' + self.server_name
+        return os.getcwd() + "/containers/" + self.username + '/' + self.server_name
     
     @property
     def status(self) -> str:
         "Current state of the server"
-        return client.containers.get(self.full_name).status
+        return super().status
     
     @property
     def port(self) -> str:
@@ -121,7 +130,9 @@ def get_containers(username:str) -> list[MCServer]:
     for container in client.containers.list(all=True):
         if bool(re.match(fr'^{username}\..*', container.name)):
             mc_server = MCServer(*container.name.split('.'))
-            containers.append(mc_server)
+
+            if mc_server != None:
+                containers.append(mc_server)
     return containers
 
 def get_servers(username:str) -> list[dict]:
