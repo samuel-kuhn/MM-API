@@ -72,7 +72,7 @@ def edit():
     version = MCServer(username, server_name).version
 
     try:    
-        mc_server.delete(username, server_name)
+        MCServer(username, server_name).remove()
         mc_server.create(username=username,
                                 server_name=server_name,
                                 port=port,
@@ -125,9 +125,18 @@ def stop():
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    request_data = request.get_json()
-    message = manager.reset(**request_data)
-    return ("ok", 200) if message is None else (message, 500)
+    request_data: dict = request.get_json()
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+
+    MCServer(username, server_name).reset()    
+    return res.Success    
+        
     
 @app.route('/delete', methods=['POST'])
 def delete():
@@ -149,13 +158,20 @@ def delete():
     
     return res.Success
 
-@app.route('/exec', methods=['POST'])
-def exec():
-    request_data = eval(request.get_json())
-    if CI.validate_mc_username(request_data['command'][3:]):
-        message = manager.exec(**request_data) 
-    else:
-        message = "Invalid username!"
-    return ("ok", 200) if message is None else (message, 500)
+@app.route('/op', methods=['POST'])
+def op():
+    request_data: dict = request.get_json()
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+    mc_user = request_data.get("mc_user")
 
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+
+    exec_result = MCServer(username, server_name).send_to_console("op " + mc_user)
+    if exec_result.exit_code != 0:
+        return res.UnexpectedError(exec_result.output)
+    return res.Success
 

@@ -119,6 +119,25 @@ class MCServer(Container):
     def stop(self):
         super().stop()
         print("\nStopping server: " + self.full_name)
+
+    def reset(self):
+        """
+        Deletes world data.
+        """
+        self.stop()
+        print("\nDeleting world data: " + self.path)
+        try:
+            shutil.rmtree(f"{self.path}/world")
+            shutil.rmtree(f"{self.path}/world_nether")
+            shutil.rmtree(f"{self.path}/world_the_end")
+        except FileNotFoundError:
+            pass
+
+    def send_to_console(self, command: str):
+        exec_result = self.exec_run("rcon-cli " + command)
+        print("\nExecuting command: " + command)
+        print(exec_result.output)
+        return exec_result
     
     def print(self):
         print('\n' + 15 * '#' + "  " + self.full_name + "  " + 15 * '#')
