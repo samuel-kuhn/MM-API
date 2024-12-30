@@ -1,5 +1,5 @@
 from docker.models.containers import Container
-import docker, os, re
+import docker, os, re, shutil
 
 client = docker.from_env()
 
@@ -93,18 +93,22 @@ class MCServer(Container):
     def info(self) -> dict:
         """
         The `dict` contains:
-        - name: Server name,
-        - status: Status of the container. For example, running or exited,
-        - memory: Ram allocated to server,
-        - port: Public port of the server,
-        - version: Minecraft Version
+        - NAME: Server name,
+        - STATUS: Status of the container. For example, running or exited,
+        - MEMORY: Ram allocated to server,
+        - PORT: Public port of the server,
+        - VERSION: Minecraft Version,
+        - MODE: Gamemode,
+        - MOTD: Message of the day
         """
         return {
-            "name": self.server_name,
-            "status": self.status,
-            "memory": self.memory,
-            "port": self.port,
-            "version": self.version
+            "NAME": self.server_name,
+            "STATUS": self.status,
+            "MEMORY": self.memory,
+            "PORT": self.port,
+            "VERSION": self.version,
+            "MODE": self.mode,
+            "MOTD": self.motd
         }
     
     # methods
@@ -124,6 +128,7 @@ class MCServer(Container):
         print("Path: \t" + self.path)
         print("Image: \t" + self.image)
         print("Port: \t" + self.port)
+
 
 def get_containers(username:str) -> list[MCServer]:
     containers = []
@@ -148,3 +153,36 @@ def get_servers(username:str) -> list[dict]:
         servers.append(container.info)
     return servers
 
+def create(username: str, 
+           server_name: str, 
+           port: int,
+           version: str,
+           mode: str,
+           memory: int,
+           motd: str):
+    
+    image = "itzg/minecraft-server"
+    username=username
+    server_name=server_name
+    container_path = os.getcwd() + "/containers/" + username + '/' + server_name
+
+    volume=[f'{container_path}:/data']
+    container_name=f"{username}.{server_name}"
+    port_binding={'25565/tcp': port}
+
+    environment = {
+        'MODE': mode,
+        'VERSION': version,
+        'MEMORY': memory,
+        'MOTD': motd,
+        'EULA': 'TRUE'
+    }
+    client.containers.create(image=image, name=container_name, ports=port_binding,
+            environment=environment, volumes=volume)
+
+
+def delete(username: str, server_name: str):
+    server = MCServer(username, server_name)
+    server.stop()
+    server.remove()
+    shutil.rmtree(server.path)
