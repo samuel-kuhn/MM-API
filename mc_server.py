@@ -152,7 +152,7 @@ class MCServer(Container):
 def get_containers(username:str) -> list[MCServer]:
     containers = []
     for container in client.containers.list(all=True):
-        if bool(re.match(fr'^{username}\..*', container.name)):
+        if bool(re.match(fr'^{re.escape(username)}\..*', container.name)):
             mc_server = MCServer(*container.name.split('.'))
 
             if mc_server != None:
