@@ -1,8 +1,8 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import docker
-import json
-import container_manager as manager
-import container_information as CI
+import mc_server
+from mc_server import MCServer
+import responses as res
 
 app = Flask(__name__)
 
@@ -14,69 +14,164 @@ def ping():
 
 @app.route('/containers', methods=['GET'])
 def containers():
-    username = request.args.get('username')
-    return ("no username", 500) if username == "" else (CI.get_servers(username), 200)
+    username = request.args.get('username', False, str)
+    if not username:
+        return res.UserMissing  
+
+    servers = mc_server.get_servers(username)
+    response = {
+        "servers": servers,
+        "total": len(servers)
+    }
+    return jsonify(response), 200
 
 @app.route('/get-config', methods=['GET'])
 def get_config():
-    username = request.args.get('username')
-    server_name = request.args.get('server_name')
-    return ("get config error", 500) if (username == "" or server_name == "") else (CI.get_container_config(username, server_name), 200)
+    username = request.args.get('username', False, str)
+    server_name = request.args.get('server_name', False, str)
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+    
+    config = MCServer(username, server_name).info
+    return jsonify(config), 200
 
 @app.route('/create', methods=['POST'])
 def create():
-    data:dict = eval(request.get_json())
-    start_options, environment = CI.disjoin_data(data)
-    message = manager.create(start_options, environment)
-    return ("ok", 200) if message is None else (message, 500)
+    data:dict = request.get_json()
+    username = data.get("username")
+    server_name = data.get("server_name")
+    port = data.get("PORT")
+    version = data.get("VERSION")
+    mode = data.get("MODE")
+    memory = data.get("MEMORY")
+    motd = data.get("MOTD")
+
+    try:
+        mc_server.create(username=username,
+                                server_name=server_name,
+                                port=port,
+                                version=version,
+                                mode=mode,
+                                memory=memory,
+                                motd=motd)
+    except Exception:
+        return res.clientError("something went wrong creating this server")
+    return res.Success
 
 @app.route('/edit', methods=['POST'])
 def edit():
-    request_data = eval(request.get_json())
-    new_start_options, new_environment = CI.disjoin_data(request_data)
-    username=new_start_options['username']
-    server_name=new_start_options['server_name']
+    data:dict = request.get_json()
+    username = data.get("username")
+    server_name = data.get("server_name")
+    port = data.get("PORT")
+    mode = data.get("MODE")
+    memory = data.get("MEMORY")
+    motd = data.get("MOTD")
+    version = MCServer(username, server_name).version
 
-    environment = CI.get_environment(username=username, server_name=server_name)
-    environment.update(new_environment)
-
-    start_options = CI.get_start_options(username=username, server_name=server_name)
-    start_options.update(new_start_options)
-
-    message = manager.edit(username=username, server_name=server_name, start_options=start_options, environment=environment)
-    return ("ok", 200) if message is None else (message, 500)
+    try:    
+        MCServer(username, server_name).remove()
+        mc_server.create(username=username,
+                                server_name=server_name,
+                                port=port,
+                                version=version,
+                                mode=mode,
+                                memory=memory,
+                                motd=motd)
+    except Exception:
+        return res.clientError("something went wrong creating this server")
+    return res.Success
 
 @app.route('/start', methods=['POST'])
 def start():
-    request_data = request.get_json()
-    message = manager.start(**request_data)
-    return ("ok", 200) if message is None else (message, 500)
+    request_data: dict = request.get_json()
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+    try:
+        MCServer(username, server_name).start()
+    except docker.errors.NotFound:
+        return res.ServerNotFound
+    except Exception:
+        return res.UnexpectedError
+
+    return res.Success
 
 @app.route('/stop', methods=['POST'])
 def stop():
-    request_data = request.get_json()
-    message = manager.stop(**request_data)
-    return ("ok", 200) if message is None else (message, 500)
+    request_data: dict = request.get_json()
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+    
+    try:
+        MCServer(username, server_name).stop()
+    except docker.errors.NotFound:
+        return res.ServerNotFound
+    except Exception:
+        return res.UnexpectedError
+
+    return res.Success
 
 @app.route('/reset', methods=['POST'])
 def reset():
-    request_data = request.get_json()
-    message = manager.reset(**request_data)
-    return ("ok", 200) if message is None else (message, 500)
+    request_data: dict = request.get_json()
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+
+    MCServer(username, server_name).reset()    
+    return res.Success    
+        
     
 @app.route('/delete', methods=['POST'])
 def delete():
-    request_data = request.get_json()
-    message = manager.delete(**request_data)
-    return ("ok", 200) if message is None else (message, 500)
+    request_data: dict = request.get_json()
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
 
-@app.route('/exec', methods=['POST'])
-def exec():
-    request_data = eval(request.get_json())
-    if CI.validate_mc_username(request_data['command'][3:]):
-        message = manager.exec(**request_data) 
-    else:
-        message = "Invalid username!"
-    return ("ok", 200) if message is None else (message, 500)
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+    
+    try:
+        mc_server.delete(username, server_name)
+    except docker.errors.APIError:
+        return res.UnexpectedError()
+    except Exception:
+        return res.UnexpectedError
+    
+    return res.Success
 
+@app.route('/op', methods=['POST'])
+def op():
+    request_data: dict = request.get_json()
+    username = request_data.get("username")
+    server_name = request_data.get("server_name")
+    mc_user = request_data.get("mc_user")
+
+    if not username:
+        return res.UserMissing
+    if not server_name:
+        return res.ServerNameMissing
+
+    exec_result = MCServer(username, server_name).send_to_console("op " + mc_user)
+    if exec_result.exit_code != 0:
+        return res.UnexpectedError(exec_result.output)
+    return res.Success
 
