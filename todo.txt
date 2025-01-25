@@ -1,9 +1,0 @@
-- create a new file that defines the container/minecraft server class
-- extend the original docker container class
-- overwrite methods if needed
-- base all container methods on original container class if possible
-- combine container_information and container_manager into one file
-
-# User Management
-- store users in a file (json) with their permissions
-- create create_user and delete_user function/api url
