@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import docker
 import mc_server
 from mc_server import MCServer
@@ -6,11 +7,13 @@ import responses as res
 
 app = Flask(__name__)
 
+CORS(app)
+
 client = docker.from_env()
 
 @app.route('/ping', methods=['GET'])
 def ping():
-    return ('online', 200)
+    return ('Pong', 200)
 
 @app.route('/containers', methods=['GET'])
 def containers():
