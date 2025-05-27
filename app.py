@@ -6,7 +6,6 @@ import responses as res
 
 app = Flask(__name__)
 
-client = docker.from_env()
 
 @app.route('/ping', methods=['GET'])
 def ping():
