@@ -1,12 +1,11 @@
 #!/bin/bash
-if [ $USER != root ]
-then
-  echo -e "Please make sure you run this as root!\nExiting!"
-  exit
-fi
+docker_error() {
+  echo -e "Docker is not running or accessible!\nExiting!"
+  exit 1
+}
 
 echo -e "pulling latest docker image...\n"
-docker image pull itzg/minecraft-server > /dev/null
+docker image pull itzg/minecraft-server > /dev/null 2>&1 || docker_error
 
 source env/bin/activate
 
